@@ -19,19 +19,21 @@ const getAllUsers=asyncHandler(async(req, res)=>{
 })
 const createNewUser=asyncHandler(async(req, res)=>{
 const {username, password, roles}=req.body
-if(!username||!password||!Array.isArray(roles)||!roles.length){
+if(!username||!password){
 
     return res.status(400).json({message:"All fields Are required"})
 }
 
-const duplicate=await User.findOne({username}).lean().exec()
+const duplicate=await User.findOne({username}).collation({locale:'en', strength:2}).lean().exec()
 if(duplicate){
 
     return res.status(409).json({message:"Duplicate username"})
 }
-
 const hashedPwd=await bcrypt.hash(password, 10)
-const userObject={username, "password":hashedPwd, roles}
+const userObject = (!Array.isArray(roles) || !roles.length)
+? { username, "password": hashedPwd }
+: { username, "password": hashedPwd, roles }
+
 
 const user=await User.create(userObject)
 if(user){
@@ -59,7 +61,7 @@ if(!user){
 
 
 }
-const duplicate=await User.findOne({username}).lean().exec()
+const duplicate=await User.findOne({username}).collation({locale:'en', strength:2}).lean().exec()
 
 if(duplicate&&duplicate?._id.toString()!==id){
 
